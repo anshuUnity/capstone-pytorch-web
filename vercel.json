@@ -1,0 +1,13 @@
+{
+    "builds": [{
+        "src": "calory_counter/wsgi.py",
+        "use": "@vercel/python",
+        "config": { "maxLambdaSize": "150mb", "runtime": "python3.10" }
+    }],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "calory_counter/wsgi.py"
+        }
+    ]
+}
