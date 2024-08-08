@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Prediction</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<style>
+    body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #ffffff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+h1, h2 {
+    text-align: center;
+    color: #333;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+input[type="file"] {
+    display: block;
+    margin: 0 auto;
+}
+
+.btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: #218838;
+}
+
+.prediction-area {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.uploaded-image {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.prediction {
+    font-size: 18px;
+    color: #555;
+}
+
+.food-info {
+    margin-top: 30px;
+}
+
+.food-info p {
+    font-size: 16px;
+    color: #666;
+}
+
+.food-info span {
+    font-weight: bold;
+}
+
+.spinner-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    display: none;
+}
+
+.spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+</style>
+<body>
+    <div class="container">
+        <h1>Food Prediction</h1>
+        <form id="upload-form" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="image">Upload Image:</label>
+                <input type="file" id="image" name="image" accept="image/*" required>
+            </div>
+            <button type="submit" class="btn">Upload and Predict</button>
+        </form>
+
+        <div id="prediction-area" class="prediction-area" style="display: none;">
+            <h2>Prediction Result</h2>
+            <img id="uploaded-image" alt="Uploaded Image" class="uploaded-image">
+            <p class="prediction">Predicted Class: <strong id="predicted-class"></strong></p>
+            <button id="get-more-info" class="btn" style="display: none;">GET MORE INFO</button>
+        </div>
+
+        <div id="food-info" class="food-info" style="display: none;">
+            <h2>Food Information</h2>
+            <p>Calories: <span id="calories"></span></p>
+            <p>Fun Fact: <span id="fun-fact"></span></p>
+            <p>History: <span id="history"></span></p>
+            <p>Ingredients: <ul id="ingredients"></ul></p>
+            <p>Process: <ol id="process"></ol></p>
+        </div>
+    </div>
+
+    <div class="spinner-backdrop" id="spinner-backdrop">
+        <div class="spinner"></div>
+    </div>
+
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            let formData = new FormData();
+            let imageFile = document.getElementById('image').files[0];
+            formData.append('image', imageFile);
+
+            fetch('/upload-image/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('predicted-class').innerHTML = data.prediction 
+                    document.getElementById('prediction-area').style.display = 'block';
+                    document.getElementById('uploaded-image').src = data.image_url;
+                    document.getElementById('get-more-info').style.display = 'block';
+                    // document.getElementById('food-info').style.display = 'block';
+
+                    // For now, just show the image. You can extend this to show predictions and other info.
+                } else {
+                    alert('Upload failed. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+        document.getElementById('get-more-info').addEventListener('click', function() {
+            const predictedClass = document.getElementById('predicted-class').innerText;
+            const spinnerBackdrop = document.getElementById('spinner-backdrop');
+
+            spinnerBackdrop.style.display = 'flex';
+            fetch(`/get-more-info/?dish=${predictedClass}`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                spinnerBackdrop.style.display = 'none';
+                if (data.success) {
+                    document.getElementById('calories').innerText = data.calories;
+                    document.getElementById('fun-fact').innerText = data.fun_fact;
+                    document.getElementById('history').innerText = data.history;
+
+                    const ingredientsList = document.getElementById('ingredients');
+                    ingredientsList.innerHTML = '';
+                    data.ingredients.forEach(ingredient => {
+                        const li = document.createElement('li');
+                        li.textContent = ingredient;
+                        ingredientsList.appendChild(li);
+                    });
+
+                    const processList = document.getElementById('process');
+                    processList.innerHTML = '';
+                    data.process.forEach(step => {
+                        const li = document.createElement('li');
+                        li.textContent = step;
+                        processList.appendChild(li);
+                    });
+
+                    document.getElementById('food-info').style.display = 'block';
+                } else {
+                    alert('Failed to fetch information. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
