@@ -132,7 +132,7 @@ input[type="file"] {
     <div class="container">
         <h1>Food Prediction</h1>
         <form id="upload-form" method="post" enctype="multipart/form-data">
-            {{csrf_token}}
+            <input type="hidden" name="csrftoken" value="{{csrf_token}}">
             <div class="form-group">
                 <label for="image">Upload Image:</label>
                 <input type="file" id="image" name="image" accept="image/*" required>
