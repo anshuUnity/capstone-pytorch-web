@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -104,7 +106,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 MODEL_PATH = BASE_DIR / "model_final.pth"
-OPEN_AI_KEY = "sk-proj-odoWbiwH94p5YCz3sED7T3BlbkFJHHMESfoQqfe7XjWmiLOT"
+OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
